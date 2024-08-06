@@ -1,0 +1,77 @@
+ADC analog to digitial converter
+/*
+ * adc.c
+ *
+ * Created: 06-08-2024 15:36:09
+ * Author : Kiran kumar
+ */ 
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#define RS PB0
+#define RW PB1
+#define EN PB2
+void lcd_cmd(unsigned char);
+void lcd_data(unsigned char);
+void lcd_init();
+
+void ADC_init(){
+	DDRA =0x00;	
+	ADMUX=0x40;
+	ADCSRA=(1<<ADEN)|(1<<ADPS1);
+}
+
+int adc_red(unsigned int ch){
+	int x=0;
+	ADMUX=(0x41|ch);
+	ADCSRA |=(1<<ADSC);
+	while ((ADCSRA & (1<<ADIF))==0);
+	x=ADC;
+	return(x);
+}
+
+
+int main(void)
+{
+    unsigned int v=0 , result=0;
+	DDRA=0x00;
+	DDRB=0x0f;
+	DDRC=0xff;
+	lcd_init();
+	ADC_init();
+    while (1) 
+    {
+		v=adc_red(1);
+		result=v;
+		lcd_cmd(0x80);
+		lcd_data((result/10)+48);
+		lcd_data('.');
+		lcd_data((result%10)+48);
+		lcd_data('v');
+    }
+}
+void lcd_cmd(unsigned char cmd){
+	PORTC = cmd;
+	PORTB &=~(1<<RS);
+	PORTB &=~(1<<RW);
+	PORTB |=(1<<EN);
+	_delay_ms(10);
+	PORTB &=~(1<<EN);
+}
+void lcd_data(unsigned char data){
+		
+		PORTB |=(1<<RS);
+		PORTB &=~(1<<RW);
+		PORTC = data;
+		PORTB |=(1<<EN);
+		_delay_ms(10);
+		PORTB &=~(1<<EN);
+	
+}
+void lcd_init(){
+	lcd_cmd(0x38);
+	lcd_cmd(0x0c);
+	lcd_cmd(0x01);
+	lcd_cmd(0x80);
+	lcd_cmd(0x06);	
+}
