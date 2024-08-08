@@ -1,0 +1,78 @@
+/*
+* lcd.c
+ *
+ * Created: 08-08-2024 12:15:03
+ * Author : Kirankumar
+ */ 
+
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <util/delay.h>
+#define RS PB0
+#define RW PB1
+#define EN PB2
+
+void lcd_cmd(unsigned char);
+void lcd_data(unsigned char);
+void lcd_init();
+void lcd_str(char *str);
+
+int main(void)
+{
+	DDRC = 0xFF; // Set PORTC as output (for data)
+	DDRB = 0xFF; // Set PORTB as output (for control)
+	lcd_init();
+	lcd_cmd(0x85); // Move cursor to a specific position
+	
+	while (1)
+	{
+        lcd_cmd(0x85);     // Move cursor to a specific position
+        lcd_str("hello");  // Display the string "hello"
+        _delay_ms(10);   // Wait for 1 second
+        lcd_cmd(0x01);     // Clear display
+        _delay_ms(10);
+	}
+}
+
+void lcd_cmd(unsigned char cmd)
+{
+	PORTC = cmd;
+	PORTB &= ~(1 << RS); // RS = 0 for command
+	PORTB &= ~(1 << RW); // RW = 0 for write
+	PORTB |= (1 << EN);  // EN = 1 for high to low pulse
+	_delay_ms(10);
+	PORTB &= ~(1 << EN); // EN = 0
+}
+
+void lcd_data(unsigned char data)
+{
+	PORTC = data;
+	PORTB |= (1 << RS);  // RS = 1 for data
+	PORTB &= ~(1 << RW); // RW = 0 for write
+	PORTB |= (1 << EN);  // EN = 1 for high to low pulse
+	_delay_ms(10);
+	PORTB &= ~(1 << EN); // EN = 0
+}
+
+void lcd_init()
+{
+	lcd_cmd(0x38); // 8-bit mode, 2 lines, 5x7 dots
+	_delay_ms(50); // Wait for more than 30ms after reset
+	lcd_cmd(0x0C); // Display ON, Cursor OFF
+	_delay_ms(10);
+	lcd_cmd(0x01); // Clear display
+	_delay_ms(50); // Wait for clearing
+	lcd_cmd(0x80); // Move to home position
+	_delay_ms(10);
+	lcd_cmd(0x06); // Increment cursor
+	_delay_ms(10);
+}
+
+void lcd_str(char *str)
+{
+	while (*str != '\0')
+	{
+		lcd_data(*str);
+		str++;
+	}
+}
